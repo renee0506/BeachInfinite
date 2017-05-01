@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset=utf-8>
+  <title>Beach</title>
+  <link rel="stylesheet" href="/css/master.css">
+</head>
+<body>
+  <script src="js/three.js"></script>
+  <script>
+  window.addEventListener('load', init, false);
+
+  function init() {
+    createScene();
+    createLights();
+    loop();
+  }
+
+  var scene, camera, fieldOfView, aspectRatio, nearPlane, farPlane, HEIGHT, WIDTH, renderer, container;
+
+function createScene(){
+    HEIGHT = window.innerHeight;
+    WIDTH = window.innerWidth;
+
+    scene = new THREE.Scene(0xffffc4, 100, 950);
+
+    aspectRatio = WIDTH / HEIGHT;
+    fieldOfView = 60;
+    nearPlane = 1;
+    farPlane = 10000;
+
+    camera = new THREE.PerspectiveCamera(
+      fieldOfView,
+      aspectRatio,
+      nearPlane,
+      farPlane
+    );
+
+    camera.position.x = 0;
+    camera.position.z = 1500;
+    camera.position.y = 300;
+
+    camera.rotation.x =-Math.PI*0.2;
+
+
+    renderer = new THREE.WebGLRenderer({
+      // Allow transparency to show the gradient background
+      // we defined in the CSS
+      alpha: true,
+
+      // Activate the anti-aliasing; this is less performant,
+      // but, as our project is low-poly based, it should be fine :)
+      antialias: true
+    });
+
+    renderer.setSize(WIDTH, HEIGHT);
+
+    // Enable shadow rendering
+    renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+    // Add the DOM element of the renderer to the
+    // container we created in the HTML
+    container = document.getElementById('world');
+    container.appendChild(renderer.domElement);
+
+    // Listen to the screen: if the user resizes it
+    // we have to update the camera and the renderer size
+    window.addEventListener('resize', handleWindowResize, false);
+    }
+
+    function handleWindowResize() {
+      // update height and width of the renderer and the camera
+      HEIGHT = window.innerHeight;
+      WIDTH = window.innerWidth;
+      renderer.setSize(WIDTH, HEIGHT);
+      camera.aspect = WIDTH / HEIGHT;
+      camera.updateProjectionMatrix();
+    }
+
+    var hemisphereLight, shadowLight;
+
+function createLights() {
+	// A hemisphere light is a gradient colored light;
+	// the first parameter is the sky color, the second parameter is the ground color,
+	// the third parameter is the intensity of the light
+	hemisphereLight = new THREE.HemisphereLight( 0xfeff9a,0x60c1c9, 0.6 );
+
+  shadowLight = new THREE.DirectionalLight(0xffffff, 0.9);
+	// Set the direction of the light
+	shadowLight.position.set(-5, 5, -4);
+	// Allow shadow casting
+	shadowLight.castShadow = true;
+	// define the visible area of the projected shadow
+	shadowLight.shadow.camera.left = -3000;
+	shadowLight.shadow.camera.right = 3000;
+	shadowLight.shadow.camera.top = 3000;
+	shadowLight.shadow.camera.bottom = -3000;
+	shadowLight.shadow.camera.near = 0;
+	shadowLight.shadow.camera.far = 5000;
+  // var helper = new THREE.CameraHelper( shadowLight.shadow.camera );
+  // scene.add( helper );
+	// define the resolution of the shadow; the higher the better,
+	// but also the more expensive and less performant
+	shadowLight.shadow.mapSize.width = 2048;
+	shadowLight.shadow.mapSize.height = 2048;
+	// to activate the lights, just add them to the scene
+	scene.add(hemisphereLight);
+  scene.add(shadowLight);
+}
+
+
+
+Cloud = function(){
+  this.mesh = new THREE.Object3D();
+  var geom = new THREE.BoxGeometry(50, 50, 50);
+
+  var mat = new THREE.MeshPhongMaterial({
+    color:	0xffffff,
+		transparent:true,
+		// shading:THREE.FlatShading,
+  })
+
+  var nBlocs = Math.ceil(Math.random()*2);
+
+  for (var i=0; i<nBlocs; i++){
+    var m = new THREE.Mesh(geom, mat);
+    m.position.x = i*30;
+    m.position.y = Math.random()*10 + 50;
+    m.position.z = Math.random()*10 + 50;
+    m.position.z = Math.random()*Math.PI*2;
+    m.rotation.y = Math.random()*Math.PI*2;
+    m.rotation.x = Math.random()*Math.PI*3;
+
+    m.castShadow = true;
+    m.receiveShadow = true;
+
+    this.mesh.add(m);
+  }
+}
+
+Sky = function(){
+  this.mesh = new THREE.Object3D;
+
+  this.nClounds = 20;
+
+  var stepAngle = Math.PI*2/this.nClounds;
+
+  for(var i=0; i<this.nClounds;i++){
+    var c = new Cloud();
+
+    c.mesh.position.x = -750+(Math.random())*1500;
+    c.mesh.position.y = Math.random()*200 + 100;
+    c.mesh.position.z = -1050+(Math.random())*1050;
+
+    var s = Math.random()*2;
+    c.mesh.scale.set(s,s,s);
+    this.mesh.add(c.mesh);
+  }
+}
+
+Tree = function(){
+  var geometry = new THREE.CylinderGeometry( 5, 10, 75, 32 );
+  var material = new THREE.MeshPhongMaterial( {color: 0x7A3B05} );
+  this.mesh = new THREE.Mesh( geometry, material );
+  this.mesh.castShadow = true;
+  this.mesh.receiveShadow = true;
+}
+
+Nut = function(){
+  var square = new THREE.BoxGeometry(20,20,20);
+  var material2 = new THREE.MeshPhongMaterial( {color: 0xf0d185} );
+  this.mesh = new THREE.Mesh( square, material2 );
+  this.mesh.castShadow = true;
+  this.mesh.receiveShadow = true;
+}
+
+Leaf = function(){
+  var shape = new THREE.Shape();
+  shape.moveTo(0,0);
+  shape.lineTo(5,8);
+  shape.lineTo(3,11);
+  shape.lineTo(5,11);
+  shape.lineTo(0,19);
+  shape.lineTo(-5,11);
+  shape.lineTo(-3,11);
+  shape.lineTo(-5,8);
+  shape.lineTo(0,0);
+
+  var geometry = new THREE.ShapeGeometry( shape );
+  var material = new THREE.MeshPhongMaterial({
+    color:	0x44bb00,
+		shading:THREE.FlatShading,
+  }) ;
+this.mesh = new THREE.Mesh( geometry, material ) ;
+}
+
+CoconutTree = function(){
+  this.mesh = new THREE.Object3D;
+  tree = new Tree();
+  tree.mesh.castShadow = true;
+  tree.mesh.receiveShadow = true;
+  // tree.mesh.scale.set(0.5,0.5,0.5);
+  this.mesh.add(tree.mesh);
+  for(var i=0; i<4;i++){
+    var c = new Nut();
+
+    c.mesh.position.x = -10 + Math.random()*20;
+    c.mesh.position.y = 35 + Math.random()*5;
+    c.mesh.rotation.z = Math.random()*Math.PI*3
+    c.mesh.castShadow = true;
+    c.mesh.receiveShadow = true;
+    c.mesh.scale.set(0.5,0.5,0.5);
+    this.mesh.add(c.mesh);
+  }
+  for(var i=0; i<=5;i++){
+    var leaf = new Leaf();
+    leaf.mesh.position.x = -20 + i*7;
+    if (i<4){
+      leaf.mesh.position.y = 25 + i*10;
+    }else{
+      leaf.mesh.position.y = 55 -(i-3)*10;
+    }
+    // leaf.mesh.rotation.y = Math.random()*Math.PI*2;
+    leaf.mesh.rotation.z = -Math.PI*(1.2 + i*0.3);
+    leaf.mesh.rotation.y = -(0.01+Math.random()*0.3)*Math.PI;
+    leaf.mesh.castShadow = true;
+    leaf.mesh.receiveShadow = true;
+    var int = Math.random()+0.5
+    leaf.mesh.scale.set(4*int*0.5,5*int*0.5,0.5);
+    this.mesh.add(leaf.mesh);
+  }
+}
+
+Beach = function(){
+  this.mesh = new THREE.Object3D;
+  for(i=0;i<5;i++){
+    var t = new CoconutTree();
+
+    t.mesh.position.x = -750+(Math.random())*1500;
+
+    t.mesh.position.z = -100+(Math.random())*150;
+
+    // var s = Math.random()*1.2+0.5;
+    // t.mesh.scale.set(s,s,s);
+    t.mesh.position.y = 300;
+    this.mesh.add(t.mesh);
+  }
+}
+
+Block = function(){
+  this.mesh = new THREE.Object3D();
+}
+
+Ground = function(){
+  this.mesh = new THREE.Object3D;
+  var geom = new THREE.BoxGeometry(1500, 200, 700, 7, 7, 7);
+  geom.mergeVertices();
+
+  var l = geom.vertices.length;
+
+  this.waves = [];
+
+  for (var i=0; i<l; i++){
+    var v = geom.vertices[i];
+
+    this.waves.push({y: v.y, x: v.x, z: v.z, ang: Math.random()*Math.PI*2, amp: 5+ Math.random()*15, speed: 0.016 + Math.random()*0.032})
+  }
+
+  var mat = new THREE.MeshPhongMaterial({
+    color:	0xf0d185,
+    shading:THREE.FlatShading,
+  });
+
+  this.mesh = new THREE.Mesh(geom, mat);
+  // Allow the sea to receive shadows
+  this.mesh.receiveShadow = true;
+}
+
+Sea = function(){
+  var geom = new THREE.BoxGeometry(1500, 200, 500, 7, 7, 7);
+  // geom.applyMatrix(new THREE.Matrix4().makeRotationX(-Math.PI/2));
+
+  geom.mergeVertices();
+
+  var l = geom.vertices.length;
+
+  this.waves = [];
+
+  for (var i=0; i<l; i++){
+    var v = geom.vertices[i];
+
+    this.waves.push({y: v.y, x: v.x, z: v.z, ang: Math.random()*Math.PI*2, amp: 5+ Math.random()*15, speed: 0.016 + Math.random()*0.032})
+  }
+  var mat = new THREE.MeshStandardMaterial({
+    color:	0x60c1c9,
+    shading:THREE.FlatShading,
+  });
+
+  this.mesh = new THREE.Mesh(geom, mat);
+  // Allow the sea to receive shadows
+  this.mesh.receiveShadow = true;
+}
+
+Sea.prototype.moveWaves = function (){
+  var verts = this.mesh.geometry.vertices;
+  var l = verts.length;
+
+  for (var i=0; i<l; i++){
+    var v = verts[i];
+
+    var vprops = this.waves[i];
+
+    if(vprops.x % 10!==0){
+      v.x = vprops.x + Math.cos(vprops.ang)*vprops.amp;
+      v.y = vprops.y + Math.sin(vprops.ang)*vprops.amp;
+    }
+
+    vprops.ang += vprops.speed;
+  }
+  this.mesh.geometry.verticesNeedUpdate = true;
+}
+
+Ground.prototype.moveWaves = function (){
+  var verts = this.mesh.geometry.vertices;
+  var l = verts.length;
+
+  for (var i=0; i<l; i++){
+    var v = verts[i];
+
+    var vprops = this.waves[i];
+
+    if(vprops.x % 10!==0){
+      v.x = vprops.x + Math.cos(vprops.ang)*vprops.amp;
+      v.y = vprops.y + Math.sin(vprops.ang)*vprops.amp;
+    }
+
+    vprops.ang += vprops.speed;
+  }
+  this.mesh.geometry.verticesNeedUpdate = true;
+}
+
+
+var seaQ = [];
+var index = 0;
+function createBlock(x){
+  var block = new Block();
+  ground = new Ground();
+
+  ground.mesh.position.y = 0;
+  ground.mesh.position.x = 300;
+  ground.mesh.position.z = 0;
+  ground.moveWaves();
+  block.mesh.add(ground.mesh);
+
+  var sea = new Sea();
+  sea.mesh.position.y = 0;
+  sea.mesh.position.z = -600;
+  sea.mesh.position.x = 300;
+
+  if(seaQ.length>=4){
+    seaQ = seaQ.slice(1,4);
+  }
+  seaQ.push(sea);
+
+  block.mesh.add(sea.mesh);
+  var sky = new Sky();
+  sky.mesh.position.y = 350;
+  sky.mesh.position.x = 300
+  block.mesh.add(sky.mesh);
+
+  var beach = new Beach();
+  beach.mesh.position.y = -175;
+  beach.mesh.position.x = 300;
+  block.mesh.add(beach.mesh);
+
+  block.mesh.position.x = x+300;
+  block.mesh.position.y = -1000;
+  block.mesh.castShadow = true;
+  block.mesh.receiveShadow = true;
+  // if (blockQ.length >= 2){
+  //   blockQ.pop();
+  // }
+  index++;
+  console.log(index);
+  scene.add(block.mesh);
+}
+
+function loop(){
+  // console.log(i);
+  if(camera.position.x%1000== 0) {
+    createBlock(1500*index);
+  }
+  camera.position.x += 2;
+  seaQ.forEach(function(sea){
+    sea.moveWaves();
+  });
+  renderer.render(scene, camera);
+
+// call the loop function again
+  requestAnimationFrame(loop);
+}
+
+  </script>
+  <div id="world"></div>
+</body>
+</html>
